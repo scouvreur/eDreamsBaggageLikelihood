@@ -214,7 +214,7 @@ validation <- train[40001:50000,]
 train <- train[0:40000,]
 
 model3 <- glm(EXTRA_BAGGAGE ~ DISTANCE + factor(HAUL_TYPE) + factor(TRIP_TYPE) + factor(DEVICE) +
-              factor(COMPANY) + factor(FAMILY_SIZE),
+              factor(COMPANY) + FAMILY_SIZE,
               data = train,
               family = binomial(link = "logit"))
 summary(model3)
@@ -232,7 +232,7 @@ plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
      main="ROC Curve")
 ```
 
-We notice that looking at the odds ratio table that
+We notice that looking at the odds ratio table that a unit increase in family size brings a 9.2% [95% CI 5.4 - 13.1] increase in probability of booking luggage as adjusting for several parameters.
 We can therefore say with 95% confidence that the true odds ratio of booking luggage after adjusting for flight distance, haul type, trip type, company and booking device in our population lies between the range [X - X] with mean 
 
 First iteration of the logistic regression model gives an AUC of:

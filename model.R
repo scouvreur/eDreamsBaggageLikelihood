@@ -9,7 +9,7 @@ cat("\014")
 setwd("~/Dropbox/Documents/Projects/DataScience/eDreamsBaggageLikelihood")
 
 # Load libraries
-library(lmtest, pROC)
+library(lmtest, pROC, MLmetrics)
 
 # Load in data
 train <- read.csv("train.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
@@ -124,17 +124,19 @@ round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 validation <- train[40001:50000,]
 train <- train[0:40000,]
 
-model <- glm(EXTRA_BAGGAGE ~ DISTANCE + factor(HAUL_TYPE) + factor(TRIP_TYPE) + factor(DEVICE) +
-              factor(COMPANY) + factor(FAMILY_SIZE),
+model <- glm(EXTRA_BAGGAGE ~ DISTANCE + factor(HAUL_TYPE) + factor(TRIP_TYPE) +
+              factor(DEVICE) + factor(COMPANY) + FAMILY_SIZE +
+              factor(IS_ALONE),
               data = train,
               family = binomial(link = "logit"))
 summary(model)
-# exp(cbind(odds=coef(model), confint(model)))
+exp(cbind(odds=coef(model), confint(model)))
 
 prediction <- predict(model, validation, type="response")
 
 roc_obj <- roc(factor(validation$EXTRA_BAGGAGE), prediction)
 auc(roc_obj)
+F1_Score(y_pred = prediction, y_true = validation$EXTRA_BAGGAGE)
 
 plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
      col="black",
@@ -143,3 +145,4 @@ plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
      main="ROC Curve")
 
 submission = data.frame(predict(model, test, type="response"))
+write.csv(submission, file="submission_logreg.csv", row.names = TRUE)
