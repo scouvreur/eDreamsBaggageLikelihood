@@ -8,6 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pROC)
+# library(lmtest, pROC)
 load("data.RData")
 ```
 
@@ -102,6 +103,8 @@ barplot(counts, main="Adult Booking Distribution",
 round(prop.table(table(train$ADULTS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
+It seems that the more adults are travelling, the more likely they are to book luggage
+
 ```{r, echo=FALSE}
 counts <- table(train$EXTRA_BAGGAGE, train$CHILDREN)
 barplot(counts, main="Children Booking Distribution",
@@ -127,6 +130,16 @@ boxplot(FAMILY_SIZE ~ EXTRA_BAGGAGE, data=train, main="",
 round(prop.table(table(train$FAMILY_SIZE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
+Increased family size also seems to bring with it increased probability of extra baggage selection.
+
+### Synthetic variable adult alone
+
+It would be interesting to see if the adults travelling alone tend to not book luggage as would be my initial assumption - we could create a binary variable IS_ALONE. Indeed from extracting this information it seems that we can improve our model as traevellers not alone have much more probability of booking luggage.
+
+```{r, echo=FALSE}
+round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
+```
+
 I would imagine that flight distance would account for a lot of the probability of luggage selection (high R2), as people who travel further I would assume need to carry more than if they are doing a short weekend trip within Europe
 
 ```{r, echo=FALSE}
@@ -136,7 +149,11 @@ barplot(counts, main="Haul Booking Distribution",
  	    	legend = rownames(counts))
 
 round(prop.table(table(train$HAUL_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
+```
 
+There are quite significan differences here between groups. One can imagine that in intercontinental flights, the luggage from more premium companies will be complimentary so no extra is needed. And for domestic flights it makes sense - travelling at home you might need less luggage.
+
+```{r, echo=FALSE}
 counts <- table(train$EXTRA_BAGGAGE, train$TRIP_TYPE)
 barplot(counts, main="Trip Booking Distribution",
 	    	xlab="Trip Type", col=c("cornsilk","lightblue"),
@@ -144,6 +161,8 @@ barplot(counts, main="Trip Booking Distribution",
 
 round(prop.table(table(train$TRIP_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
+
+Interestingly, in round trips customers select extra baggage the least - perhaps they travel lighter as they know their belongings are at home. However much more take luggage on one ways (moving, expatriation or immigration perhaps ?) and even more on multi-destination trips.
 
 As one would imagine, flight DISTANCE seems to follow a skeweved normal distribution with alot of short flights between 0-3000km and then drastic reductions from then onwards.
 
@@ -181,7 +200,11 @@ model2 <- glm(EXTRA_BAGGAGE ~ DISTANCE + factor(HAUL_TYPE) + factor(TRIP_TYPE) +
               data = train,
               family = binomial(link = "logit"))
 summary(model2)
+
+# lrtest(model1, model2)
 ```
+
+From the likelihood ratio test, it seems that there is strong evidence that 
 
 If we remove the categories using the family size feature, we get:
 
@@ -195,6 +218,7 @@ model3 <- glm(EXTRA_BAGGAGE ~ DISTANCE + factor(HAUL_TYPE) + factor(TRIP_TYPE) +
               data = train,
               family = binomial(link = "logit"))
 summary(model3)
+exp(cbind(odds=coef(model3), confint(model3)))
 
 prediction <- predict(model3, validation, type="response")
 
@@ -208,12 +232,26 @@ plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
      main="ROC Curve")
 ```
 
-First iteration of the logistic regression model gives an AUC of 0.6895
+We notice that looking at the odds ratio table that
+We can therefore say with 95% confidence that the true odds ratio of booking luggage after adjusting for flight distance, haul type, trip type, company and booking device in our population lies between the range [X - X] with mean 
+
+First iteration of the logistic regression model gives an AUC of:
+```{r, echo=FALSE}
+auc(roc_obj)
+```
 
 Overall one of the challenges of building this model is that there is strong class imbalance - indeed it might be interesting to try an xgboost model with the data encoded as levels rather than as dummy variables
 
 Preliminary 80/20 train/validation split to have internal validation mechanism
 
+## Linear model error estimation
+
+To make sure that the AUC we get on the validation set we will also get on the test set (which is hidden from us), we should make a 5-fold cross validation where we can get a confidence interval on the AUC estimation
+
+
+
 ## Graph Boosted Machine with XGBoost
+
+Code done in Python here
 
 

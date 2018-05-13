@@ -22,6 +22,7 @@ train = pd.read_csv("train_xgboost.csv", sep = ",")
 
 categorical_features = ["HAUL_TYPE","DEVICE","TRIP_TYPE","COMPANY"]
 
+train["IS_ALONE"] = LabelEncoder().fit_transform(train["IS_ALONE"].astype("str"))
 train["COMPANY"] = LabelEncoder().fit_transform(train["COMPANY"].astype("str"))
 train["HAUL_TYPE"] = LabelEncoder().fit_transform(train["HAUL_TYPE"].astype("str"))
 train["TRIP_TYPE"] = LabelEncoder().fit_transform(train["TRIP_TYPE"].astype("str"))
@@ -29,13 +30,14 @@ train["DEVICE"] = LabelEncoder().fit_transform(train["DEVICE"].astype("str"))
 train["DISTANCE"] = train["DISTANCE"].astype("float")
 train["EXTRA_BAGGAGE"] = LabelEncoder().fit_transform(train["EXTRA_BAGGAGE"].astype("str"))
 
+test["IS_ALONE"] = LabelEncoder().fit_transform(test["IS_ALONE"].astype("str"))
 test["COMPANY"] = LabelEncoder().fit_transform(test["COMPANY"].astype("str"))
 test["HAUL_TYPE"] = LabelEncoder().fit_transform(test["HAUL_TYPE"].astype("str"))
 test["TRIP_TYPE"] = LabelEncoder().fit_transform(test["TRIP_TYPE"].astype("str"))
 test["DEVICE"] = LabelEncoder().fit_transform(test["DEVICE"].astype("str"))
 test["DISTANCE"] = test["DISTANCE"].astype("float")
 
-features = ["FAMILY_SIZE","DISTANCE","HAUL_TYPE","DEVICE","TRIP_TYPE","COMPANY"]
+features = ["IS_ALONE","FAMILY_SIZE","DISTANCE","HAUL_TYPE","DEVICE","TRIP_TYPE","COMPANY"]
 
 X_train = train[list(features)].values
 Y_train = train["EXTRA_BAGGAGE"].values
@@ -50,7 +52,7 @@ max_depth=8
 learning_rate=1.0
 
 # clf = XGBClassifier()
-clf = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
+clf = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate, reg_alpha=1, reg_lambda=1)
 clf.fit(X_train, Y_train)
 
 Y_test = clf.predict_proba(X_test)

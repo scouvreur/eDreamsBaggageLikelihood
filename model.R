@@ -9,7 +9,7 @@ cat("\014")
 setwd("~/Dropbox/Documents/Projects/DataScience/eDreamsBaggageLikelihood")
 
 # Load libraries
-library(pROC)
+library(lmtest, pROC)
 
 # Load in data
 train <- read.csv("train.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
@@ -71,6 +71,32 @@ FAMILY_SIZE = test$ADULTS + test$CHILDREN + test$INFANTS
 test$FAMILY_SIZE <- FAMILY_SIZE
 rm(FAMILY_SIZE)
 
+# Create a utility function to extract if adult is travelling alone
+extractAlone <- function(familysize) {
+  if (familysize > 1) {
+    return(0)
+  } else {
+    return(1)
+  }
+}
+
+# Create is alone variable
+IS_ALONE <- NULL
+for (i in 1:nrow(train)) {
+  IS_ALONE <- c(IS_ALONE, extractAlone(train[i,"FAMILY_SIZE"]))
+}
+train$IS_ALONE <- as.factor(IS_ALONE)
+train$IS_ALONE <- factor(train$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
+
+IS_ALONE <- NULL
+for (i in 1:nrow(train)) {
+  IS_ALONE <- c(IS_ALONE, extractAlone(test[i,"FAMILY_SIZE"]))
+}
+test$IS_ALONE <- as.factor(IS_ALONE)
+test$IS_ALONE <- factor(test$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
+
+rm(IS_ALONE, i, extractAlone)
+
 # Variables not of interest removed
 # Assuming there is no local variability between countries (UK, Italy, Spain etc.), big assumption though...
 train <- subset(train, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
@@ -85,10 +111,12 @@ round(prop.table(table(train$TRIP_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1
 round(prop.table(table(train$ADULTS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 round(prop.table(table(train$CHILDREN, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 round(prop.table(table(train$INFANTS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
+round(prop.table(table(train$FAMILY_SIZE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
+round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 
-# Export data for Python Machine Learning model
-# write.csv(train, file="train_nana.csv", row.names = FALSE)
-# write.csv(test, file="test_nana.csv", row.names = FALSE)
+# Export data for Python XGBoost Machine Learning model
+# write.csv(train, file="train_.csv", row.names = FALSE)
+# write.csv(test, file="test_.csv", row.names = FALSE)
 
 ## Building the actual model
 
