@@ -47,7 +47,7 @@ X_train, X_validation, Y_train, Y_validation = train_test_split(X_train, Y_train
 																test_size=0.2,
 																random_state=747)
 
-n_estimators=400
+n_estimators=800
 max_depth=3
 learning_rate=1.0
 
