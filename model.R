@@ -9,14 +9,15 @@ cat("\014")
 setwd("~/Dropbox/Documents/Projects/DataScience/eDreamsBaggageLikelihood")
 
 # Load libraries
-library(lmtest, pROC, MLmetrics)
+library(pROC)
 
 # Load in data
 train <- read.csv("train.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
 test <- read.csv("test.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
 
-# Check for missing data
-# length(train[!complete.cases(train),])
+# Fill in any missing values
+train$DEVICE[is.na(train$DEVICE)] <- "OTHER"
+test$DEVICE[is.na(test$DEVICE)] <- "OTHER"
 
 # Reformatting data structure types
 str(train)
@@ -85,17 +86,25 @@ test$IS_ALONE <- as.factor(IS_ALONE)
 rm(IS_ALONE, i, extractAlone)
 
 # Create distance category
-train$DISTANCE_CAT <- factor(cut(train$DISTANCE, c(0,4000,30000), labels = FALSE))
-test$DISTANCE_CAT <- factor(cut(test$DISTANCE, c(0,4000,30000), labels = FALSE))
+train$DISTANCE_CAT <- factor(cut(train$DISTANCE, c(-1,4000,100000), labels = FALSE))
+test$DISTANCE_CAT <- factor(cut(test$DISTANCE, c(-1,4000,100000), labels = FALSE))
 
 # Variables not of interest removed
 # Assuming there is no local variability between countries (UK, Italy, Spain etc.), big assumption though...
 train <- subset(train, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
 test <- subset(test, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
 
+# Check for missing data
+length(train[!complete.cases(train),])
+length(test[!complete.cases(test),])
+
 # Export data for Python XGBoost Machine Learning model
 write.csv(train, file="train_xgboost.csv", row.names = FALSE, quote = FALSE)
 write.csv(test, file="test_xgboost.csv", row.names = FALSE, quote = FALSE)
+
+# 80/20 train/validation set split
+validation <- train[40001:50000,]
+train <- train[0:40000,]
 
 model <- glm(EXTRA_BAGGAGE ~ factor(HAUL_TYPE) + factor(TRIP_TYPE) +
              factor(DISTANCE_CAT) + factor(DEVICE) + factor(COMPANY) +
@@ -104,3 +113,17 @@ model <- glm(EXTRA_BAGGAGE ~ factor(HAUL_TYPE) + factor(TRIP_TYPE) +
              family = binomial(link = "logit"))
 summary(model)
 exp(cbind(odds=coef(model), confint(model)))
+
+prediction <- predict(model, validation, type="response")
+
+roc_obj <- roc(factor(validation$EXTRA_BAGGAGE), prediction)
+auc(roc_obj)
+
+plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
+     col="black",
+     xlab="False Positive Rate",
+     ylab="True Positive Rate",
+     main="ROC Curve")
+
+test$EXTRA_BAGGAGE <- predict(model, test, type="response")
+write.csv(test[,c("ID","EXTRA_BAGGAGE")], file="submission.csv", row.names = FALSE, quote = FALSE)
