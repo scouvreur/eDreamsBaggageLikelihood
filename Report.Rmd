@@ -18,19 +18,6 @@ Jean Baudrillard, \textit{Simulacra and Simulation}, 1988
 
 # Exploratory Data Analysis
 
-```{r, echo=FALSE}
-# Adding labels to dataset
-train$EXTRA_BAGGAGE <- factor(train$EXTRA_BAGGAGE, levels = c("False","True"), labels = c("No Extra Baggage", "Extra Baggage"))
-
-train$IS_ALONE <- factor(train$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
-test$IS_ALONE <- factor(test$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
-```
-
-```{r}
-library(pROC)
-load("data.RData")
-```
-
 ## Plotting and visualising the distributions of different variables
 
 Overall proportion of people having booked extra baggage:

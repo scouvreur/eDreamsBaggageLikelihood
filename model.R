@@ -89,6 +89,19 @@ rm(IS_ALONE, i, extractAlone)
 train$DISTANCE_CAT <- factor(cut(train$DISTANCE, c(-1,4000,100000), labels = FALSE))
 test$DISTANCE_CAT <- factor(cut(test$DISTANCE, c(-1,4000,100000), labels = FALSE))
 
+# Adding labels to dataset
+train$EXTRA_BAGGAGE <- factor(train$EXTRA_BAGGAGE,
+                              levels = c("False","True"),
+                              labels = c("No Extra Baggage", "Extra Baggage"))
+
+train$IS_ALONE <- factor(train$IS_ALONE,
+                         levels = c(0,1),
+                         labels = c("Not alone", "Alone"))
+
+test$IS_ALONE <- factor(test$IS_ALONE,
+                        levels = c(0,1),
+                        labels = c("Not alone", "Alone"))
+
 # Variables not of interest removed
 # Assuming there is no local variability between countries (UK, Italy, Spain etc.), big assumption though...
 train <- subset(train, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
@@ -127,4 +140,3 @@ plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
 
 test$EXTRA_BAGGAGE <- predict(model, test, type="response")
 write.csv(test[,c("ID","EXTRA_BAGGAGE")], file="submission.csv", row.names = FALSE, quote = FALSE)
-
