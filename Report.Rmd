@@ -1,5 +1,5 @@
 ---
-title: "eDream Odigeo Baggage Likelihood Model"
+title: "eDreams ODIGEO Baggage Likelihood Model"
 author: "Stéphane Couvreur"
 date: "16/9/2018"
 output: pdf_document
@@ -8,7 +8,6 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pROC)
-# library(lmtest, pROC)
 load("data.RData")
 ```
 
@@ -18,9 +17,6 @@ Jean Baudrillard, \textit{Simulacra and Simulation}, 1988
 \end{center}
 
 # Exploratory Data Analysis
-## Plotting and visualising the distributions of different variables
-
-Overall proportion of people having booked extra baggage:
 
 ```{r, echo=FALSE}
 # Adding labels to dataset
@@ -28,7 +24,18 @@ train$EXTRA_BAGGAGE <- factor(train$EXTRA_BAGGAGE, levels = c("False","True"), l
 
 train$IS_ALONE <- factor(train$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
 test$IS_ALONE <- factor(test$IS_ALONE, levels = c(0,1), labels = c("Not alone", "Alone"))
+```
 
+```{r}
+library(pROC)
+load("data.RData")
+```
+
+## Plotting and visualising the distributions of different variables
+
+Overall proportion of people having booked extra baggage:
+
+```{r}
 round(prop.table(table(train$EXTRA_BAGGAGE))*100, digits = 1)
 ```
 
@@ -46,25 +53,25 @@ Data which seems irrelevant at first sight:
 
 As there is very strong class imbalance within the TRAIN booking binary variable (99.5% in the training set did not book a train).
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$TRAIN))*100, digits = 1)
 ```
 
 Similarly within the PRODUCT variable (98.1% booked a Trip compared to a Dynpack) - both these variables were not considered.
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$PRODUCT))*100, digits = 1)
 ```
 
 Maybe those who pick SMS as an extra are more likely to pick other extras ?
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$SMS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
 It seems that there is not much interesting with SMS confirmation for now. Could it be however that with certain devices more customers book luggage ?
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$DEVICE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
@@ -78,7 +85,7 @@ It would be interesting to see if there are significant variations in baggage bo
 To simplify we assume that there is no local variability between bookings in UK, Italy, Spain, France etc..
 Also, extracting different countries would just lead to a categorical factor variable with potentially many levels - which is not so good for a machine learning algorithm. Indeed, there is insteresting subtle variability between different booking websites:
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$COMPANY, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
@@ -88,18 +95,22 @@ The website variable could be a predictor of our outcome variable. Not understan
 
 We investigate a potential relation between infants and baggage, after creating a synthetic variable combining ADULTS + CHILDREN + INFANTS called FAMILY_SIZE. Adults travelling alone I would assume would be less likely to book luggage, but with one or more children much more likely to get luggage, especially with infants. Indeed from a small table you can see that:
 
-```{r, echo=FALSE}
+\clearpage
+
+```{r}
 counts <- table(train$EXTRA_BAGGAGE, train$ADULTS)
 barplot(counts, main="Adult Booking Distribution",
-		xlab="Number of Adults in Booking", col=c("lightblue", "mistyrose"),
+		xlab="Number of Adults in Booking", col=c("lightcyan", "lavender"),
  		legend = rownames(counts))
 
 round(prop.table(table(train$ADULTS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
-It seems that the more adults are travelling, the more likely they are to book luggage:
+It seems that the more adults are travelling, the more likely they are to book luggage.
 
-```{r, echo=FALSE}
+\clearpage
+
+```{r}
 counts <- table(train$EXTRA_BAGGAGE, train$CHILDREN)
 barplot(counts, main="Children Booking Distribution",
 		xlab="Number of Children in Booking", col=c("lightcyan", "lavender"),
@@ -108,16 +119,20 @@ barplot(counts, main="Children Booking Distribution",
 round(prop.table(table(train$CHILDREN, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
-```{r, echo=FALSE}
+\clearpage
+
+```{r}
 counts <- table(train$EXTRA_BAGGAGE, train$INFANTS)
 barplot(counts, main="Infants Booking Distribution",
-	    	xlab="Number of Infants in Booking", col=c("cornsilk","lightblue"),
+	    	xlab="Number of Infants in Booking", col=c("lightcyan", "lavender"),
  	    	legend = rownames(counts))
 
 round(prop.table(table(train$INFANTS, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
-```{r, echo=FALSE}
+\clearpage
+
+```{r}
 boxplot(FAMILY_SIZE ~ EXTRA_BAGGAGE, data=train, main="",
   	xlab="Baggage", ylab="Family size")
 
@@ -126,11 +141,13 @@ round(prop.table(table(train$FAMILY_SIZE, train$EXTRA_BAGGAGE), 1)*100, digits =
 
 Increased overall family size also seems to bring with it increased probability of extra baggage selection.
 
+\clearpage
+
 ## Travelling alone
 
 It would be interesting to see if the adults travelling alone tend to not book luggage as would be my initial assumption - we could create a binary variable IS_ALONE. Indeed from extracting this information it seems that we can improve our model as travellers not alone have much more probability of booking luggage.
 
-```{r, echo=FALSE}
+```{r}
 round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
@@ -138,10 +155,10 @@ round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 
 I would imagine that flight distance would account for a lot of the variability in luggage selection, as people who travel further I would assume need to carry more than if they are doing a short weekend trip within Europe for instance.
 
-```{r, echo=FALSE}
+```{r}
 counts <- table(train$EXTRA_BAGGAGE, train$HAUL_TYPE)
 barplot(counts, main="Haul Booking Distribution",
-	    	xlab="Haul Type", col=c("cornsilk","lightblue"),
+	    	xlab="Haul Type", col=c("lightcyan", "lavender"),
  	    	legend = rownames(counts))
 
 round(prop.table(table(train$HAUL_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
@@ -149,10 +166,10 @@ round(prop.table(table(train$HAUL_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1
 
 There are quite significant differences here between groups. One can imagine that in intercontinental flights, the luggage from more premium companies will be complimentary so no extra is needed. And for domestic flights it makes sense - travelling at home you might need less luggage.
 
-```{r, echo=FALSE}
+```{r}
 counts <- table(train$EXTRA_BAGGAGE, train$TRIP_TYPE)
 barplot(counts, main="Trip Booking Distribution",
-	    	xlab="Trip Type", col=c("cornsilk","lightblue"),
+	    	xlab="Trip Type", col=c("lightcyan", "lavender"),
  	    	legend = rownames(counts))
 
 round(prop.table(table(train$TRIP_TYPE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
@@ -162,7 +179,7 @@ Interestingly, in round trips customers select extra baggage the least - perhaps
 
 As one would imagine, flight DISTANCE seems to follow a skeweved normal distribution with alot of short flights between 0-3000km and then drastic reductions from then onwards.
 
-```{r, echo=FALSE}
+```{r}
 hist(train$DISTANCE,
      main = "Air Travel Distance Distribution",
      xlab = "Distance [km]",
@@ -176,14 +193,14 @@ boxplot(DISTANCE ~ EXTRA_BAGGAGE, data=train, main="Flight Distance Data",
 
 As there does not seem to be a clear distinction using flight distance as a continuous variable, we use distance cut into categories to improve our model. We group together values between 0-4000 and 4000+ km to make things even simple.
 
-```{r, echo=FALSE}
+```{r}
 train$DISTANCE_CAT <- factor(train$DISTANCE_CAT, levels = c(1,2), labels = c("0-4000km", "4000+ km"))
 
 counts <- table(train$EXTRA_BAGGAGE, train$DISTANCE_CAT)
 barplot(counts, main="Distance Category Booking Distribution",
-	    	xlab="Distance", col=c("cornsilk","lightblue"),
+	    	xlab="Distance", col=c("lightcyan", "lavender"),
  	    	legend = rownames(counts))
- 	    	
+
 round(prop.table(table(train$DISTANCE_CAT, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
@@ -192,7 +209,7 @@ round(prop.table(table(train$DISTANCE_CAT, train$EXTRA_BAGGAGE), 1)*100, digits 
 
 Using all the features we deemed significant and our engineered classes, we obtain the following model:
 
-```{r, echo=FALSE}
+```{r}
 # 80/20 train/validation set split
 validation <- train[40001:50000,]
 train <- train[0:40000,]
@@ -207,24 +224,25 @@ exp(cbind(odds=coef(model), confint(model)))
 
 prediction <- predict(model, validation, type="response")
 
-roc_obj <- roc(factor(validation$EXTRA_BAGGAGE), prediction)
-auc(roc_obj)
+rocobj <- roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE)
 
-plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
+plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
      col="black",
+     print.auc=TRUE,
      xlab="False Positive Rate",
      ylab="True Positive Rate",
      main="ROC Curve")
 ```
 
-We can confirm from this that SMS is not significant in our model as shown by the p-value, we can therefore remove it. All other features are highly significant (*** corresponing to p<0.001), so we choose to keep them in our model.
+We can confirm from this that SMS is not significant in our model as shown by the p-value (), we can therefore remove it. All other features are highly significant (*** corresponing to p<0.001), so we choose to keep them in our model.
 
 Looking at the odds ratio table, a unit increase in family size brings a 9.0% [95% CI 5.2 - 12.8] increase in probability of booking luggage after adjusting for our other features.
 
 After a preliminary 80/20 train/validation split for internal validation this logistic regression model gives an AUC of:
 
-```{r, echo=FALSE}
-auc(roc_obj)
+```{r}
+rocobj$auc
+rocobj$ci
 ```
 
-Overall one of the challenges of building this model is that there is strong class imbalance in our primary outcome - indeed it might be interesting to try a more advanced machine learning model with the data, such as gradient boosted machines for instance.
+Overall one of the challenges of building this model is that there is strong class imbalance in our primary outcome - indeed it might be interesting to try a more advanced machine learning model with the data, such as gradient boosted machines for instance. With more time, one would perhaps consider a different sampling strategy to better balance both outcomes, or perhaps an upsampling technique to generate new booking data where extra baggage was selected.

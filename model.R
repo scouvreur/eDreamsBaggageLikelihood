@@ -116,14 +116,15 @@ exp(cbind(odds=coef(model), confint(model)))
 
 prediction <- predict(model, validation, type="response")
 
-roc_obj <- roc(factor(validation$EXTRA_BAGGAGE), prediction)
-auc(roc_obj)
+rocobj <- roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE)
 
-plot(roc(validation$EXTRA_BAGGAGE, prediction, direction="<"),
+plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
      col="black",
+     print.auc=TRUE,
      xlab="False Positive Rate",
      ylab="True Positive Rate",
      main="ROC Curve")
 
 test$EXTRA_BAGGAGE <- predict(model, test, type="response")
 write.csv(test[,c("ID","EXTRA_BAGGAGE")], file="submission.csv", row.names = FALSE, quote = FALSE)
+
