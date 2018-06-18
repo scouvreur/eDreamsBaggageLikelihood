@@ -22,8 +22,20 @@ test$DEVICE[is.na(test$DEVICE)] <- "OTHER"
 # Reformatting data structure types
 str(train)
 str(test)
-train$DISTANCE<- as.numeric(train$DISTANCE)
+train$DISTANCE <- as.numeric(train$DISTANCE)
 test$DISTANCE <- as.numeric(test$DISTANCE)
+
+train$ARRIVAL <- as.Date(train$ARRIVAL, "%d/%b")
+train$DEPARTURE <- as.Date(train$DEPARTURE, "%d/%b")
+train$TRIP_LEN_DAYS <- as.integer(abs(difftime(train$ARRIVAL,
+                                               train$DEPARTURE,
+                                               units = "days")))
+
+test$ARRIVAL <- as.Date(test$ARRIVAL, "%d/%b")
+test$DEPARTURE <- as.Date(test$DEPARTURE, "%d/%b")
+test$TRIP_LEN_DAYS <- as.integer(abs(difftime(test$ARRIVAL,
+                                              test$DEPARTURE,
+                                              units = "days")))
 
 # Create a utility function to help with website extraction using UNIX grep
 extractWebsite <- function(name) {
