@@ -10,14 +10,21 @@ setwd("~/Dropbox/Documents/Projects/DataScience/eDreamsBaggageLikelihood")
 
 # Load libraries
 library(pROC)
+library(ggplot2)
 
 # Load in data
-train <- read.csv("train.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
-test <- read.csv("test.csv", header = TRUE, sep = ";", na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
+train <- read.csv("train.csv", header = TRUE, sep = ";",
+                  na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
+test <- read.csv("test.csv", header = TRUE, sep = ";",
+                 na.strings=c(""," ","NA"), stringsAsFactors = TRUE)
 
 # Fill in any missing values
 train$DEVICE[is.na(train$DEVICE)] <- "OTHER"
 test$DEVICE[is.na(test$DEVICE)] <- "OTHER"
+
+# Check for missing data
+length(train[!complete.cases(train),])
+length(test[!complete.cases(test),])s
 
 # Reformatting data structure types
 str(train)
@@ -115,13 +122,14 @@ test$IS_ALONE <- factor(test$IS_ALONE,
                         labels = c("Not alone", "Alone"))
 
 # Variables not of interest removed
-# Assuming there is no local variability between countries (UK, Italy, Spain etc.), big assumption though...
-train <- subset(train, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
-test <- subset(test, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL, TRAIN, PRODUCT, GDS, NO_GDS, WEBSITE, SMS))
-
-# Check for missing data
-length(train[!complete.cases(train),])
-length(test[!complete.cases(test),])
+# Assuming there is no local variability between countries (UK, Italy, Spain etc.)
+# big assumption though...
+train <- subset(train, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL,
+                                   TRAIN, PRODUCT, GDS,
+                                   NO_GDS, WEBSITE, SMS))
+test <- subset(test, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL,
+                                 TRAIN, PRODUCT, GDS,
+                                 NO_GDS, WEBSITE, SMS))
 
 # Export data for Python XGBoost Machine Learning model
 write.csv(train, file="train_xgboost.csv", row.names = FALSE, quote = FALSE)
@@ -132,18 +140,22 @@ validation <- train[40001:50000,]
 train <- train[0:40000,]
 
 model <- glm(EXTRA_BAGGAGE ~ factor(HAUL_TYPE) + factor(TRIP_TYPE) +
-             factor(DISTANCE_CAT) + factor(DEVICE) + factor(COMPANY) +
-             FAMILY_SIZE + factor(IS_ALONE),
+             DISTANCE + factor(DEVICE) + factor(COMPANY) +
+             FAMILY_SIZE + factor(IS_ALONE) + TRIP_LEN_DAYS,
              data = train,
              family = binomial(link = "logit"))
 summary(model)
 exp(cbind(odds=coef(model), confint(model)))
 
-prediction <- predict(model, validation, type="response")
+validation$PREDICTION <- predict(model, validation, type="response")
+
+ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5)
 
 rocobj <- roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE)
 
-plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
+plot(roc(factor(validation$EXTRA_BAGGAGE),
+     validation$PREDICTION,
+     ci=TRUE, direction="<"),
      col="black",
      print.auc=TRUE,
      xlab="False Positive Rate",
@@ -151,4 +163,5 @@ plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
      main="ROC Curve")
 
 test$EXTRA_BAGGAGE <- predict(model, test, type="response")
-write.csv(test[,c("ID","EXTRA_BAGGAGE")], file="submission.csv", row.names = FALSE, quote = FALSE)
+write.csv(test[,c("ID","EXTRA_BAGGAGE")], file="submission.csv",
+          row.names = FALSE, quote = FALSE)
