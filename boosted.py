@@ -25,7 +25,9 @@ from sklearn.metrics import f1_score, roc_auc_score
 test = pd.read_csv("test_xgboost.csv", sep = ",")
 train = pd.read_csv("train_xgboost.csv", sep = ",")
 
-categorical_features = ["IS_ALONE","HAUL_TYPE","DEVICE","TRIP_TYPE","COMPANY","DISTANCE_CAT"]
+categorical_features = ["IS_ALONE","HAUL_TYPE",
+						"DEVICE","TRIP_TYPE",
+						"COMPANY","DISTANCE_CAT"]
 numerical_features = ["FAMILY_SIZE"]
 
 # Conversion of string categorical variables to encoded labels
@@ -52,22 +54,21 @@ n_estimators=300
 max_depth=3
 learning_rate=0.1
 
-clf = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=learning_rate)
+clf = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth,
+					learning_rate=learning_rate)
 clf.fit(X_train, Y_train)
 
 Y_test = clf.predict(X_test)
 Y_test_proba = clf.predict_proba(X_test)
 
 print("--- Model parameters ---")
-print("XGBClassifier(n_estimators={}, max_depth={}, learning_rate={})".format(n_estimators, max_depth, learning_rate))
+print("XGBClassifier(n_estimators={}, max_depth={},learning_rate={})".format(n_estimators, max_depth, learning_rate))
 
 print("--- Validation set ---")
 print("AUC;{}".format(roc_auc_score(Y_validation, clf.predict(X_validation))))
-print("F1;{}".format(f1_score(Y_validation, clf.predict(X_validation), average='micro')))
 
 print("--- Training set ---")
 print("AUC;{}".format(roc_auc_score(Y_train, clf.predict(X_train))))
-print("F1;{}".format(f1_score(Y_train, clf.predict(X_train), average='micro')))
 
 f = open("submission_xgboost.csv", 'w')
 f.write("ID,EXTRA_BAGGAGE\n")
