@@ -16,11 +16,16 @@ print(__doc__)
 
 import numpy as np
 import pandas as pd
-
+from matplotlib import pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from xgboost.sklearn import XGBClassifier
+from xgboost import plot_importance
 from sklearn.metrics import roc_auc_score
+
+from scipy import stats, integrate
+import seaborn as sns
+sns.set(color_codes=True)
 
 test = pd.read_csv("test_xgboost.csv", sep = ",")
 train = pd.read_csv("train_xgboost.csv", sep = ",")
@@ -62,8 +67,8 @@ Y_train = train["EXTRA_BAGGAGE"].values
 X_test = test[list(features)].values
 
 # Train/validation split to compute F1 and AUC internally without holdout set
-X_train, X_validation, Y_train, Y_validation = train_test_split(X_train, Y_train,
-																test_size=0.2,
+X_train, X_validation, Y_train, Y_validation = train_test_split(X_train,Y_train,
+																test_size=0.33,
 																random_state=747)
 
 # Rule-ot-thumb XGBoost parameters
@@ -79,6 +84,8 @@ clf.fit(X_train, Y_train)
 Y_test = clf.predict(X_test)
 Y_test_proba = clf.predict_proba(X_test)
 
+Y_validation_proba = clf.predict_proba(X_validation)
+
 print("--- Model parameters ---")
 print(clf)
 
@@ -92,4 +99,16 @@ f = open("submission_xgboost.csv", 'w')
 f.write("ID,EXTRA_BAGGAGE\n")
 for i in range(len(Y_test)):
     # f.write("{},{}\n".format(i,Y_test[i]))
-    f.write("{},{:6f}\n".format(i,Y_test_proba[i,1]))
+    f.write("{},{:6f}\n".format(i,Y_test_proba[i,0]))
+
+# # plot feature importance
+# plot_importance(clf)
+# plt.show()
+
+array = np.column_stack((Y_validation_proba[:,1], Y_validation))
+
+x = array[np.where(array[:,1] == 1.)]
+y = array[np.where(array[:,1] == 0.)]
+sns.kdeplot(x[:,0], shade=True)
+sns.kdeplot(y[:,0], shade=True)
+plt.show()

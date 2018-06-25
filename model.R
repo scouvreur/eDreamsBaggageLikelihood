@@ -11,6 +11,7 @@ setwd("~/Dropbox/Documents/Projects/DataScience/eDreamsBaggageLikelihood")
 # Load libraries
 library(pROC)
 library(ggplot2)
+library(caret)
 
 # Load in data
 train <- read.csv("train.csv", header = TRUE, sep = ";",
@@ -131,8 +132,15 @@ test <- subset(test, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL,
                                  TRAIN, PRODUCT, GDS,
                                  NO_GDS, WEBSITE, SMS))
 
+# Downsampling to balance both classes
+down_train <- downSample(x = train[, -ncol(train)],
+                         y = train$EXTRA_BAGGAGE)
+down_train <- subset(down_train, select = -c(Class))
+# There is now no class imbalance in the subsample
+table(down_train$EXTRA_BAGGAGE)
+
 # Export data for Python XGBoost Machine Learning model
-write.csv(train, file="train_xgboost.csv", row.names = FALSE, quote = FALSE)
+write.csv(down_train, file="train_xgboost.csv", row.names = FALSE, quote = FALSE)
 write.csv(test, file="test_xgboost.csv", row.names = FALSE, quote = FALSE)
 
 # 80/20 train/validation set split
@@ -142,16 +150,17 @@ train <- train[0:40000,]
 model <- glm(EXTRA_BAGGAGE ~ factor(HAUL_TYPE) + factor(TRIP_TYPE) +
              DISTANCE + factor(DEVICE) + factor(COMPANY) +
              FAMILY_SIZE + factor(IS_ALONE) + TRIP_LEN_DAYS,
-             data = train,
+             data = down_train,
              family = binomial(link = "logit"))
 summary(model)
 exp(cbind(odds=coef(model), confint(model)))
 
 validation$PREDICTION <- predict(model, validation, type="response")
 
-ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5)
+ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE))
+       + geom_density(alpha = 0.5)
 
-rocobj <- roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE)
+rocobj <- roc(factor(validation$EXTRA_BAGGAGE), validation$PREDICTION, ci=TRUE)
 
 plot(roc(factor(validation$EXTRA_BAGGAGE),
      validation$PREDICTION,
