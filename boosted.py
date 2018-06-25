@@ -20,24 +20,41 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from xgboost.sklearn import XGBClassifier
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import roc_auc_score
 
 test = pd.read_csv("test_xgboost.csv", sep = ",")
 train = pd.read_csv("train_xgboost.csv", sep = ",")
 
-categorical_features = ["IS_ALONE","HAUL_TYPE",
-						"DEVICE","TRIP_TYPE",
-						"COMPANY","DISTANCE_CAT"]
-numerical_features = ["FAMILY_SIZE"]
+categorical_features = ["IS_ALONE",
+						"HAUL_TYPE",
+						"DEVICE",
+						"TRIP_TYPE",
+						"COMPANY"]
 
-# Conversion of string categorical variables to encoded labels
-for feature in categorical_features:
-	train[feature] = LabelEncoder().fit_transform(train[feature].astype("str"))
-	test[feature] = LabelEncoder().fit_transform(test[feature].astype("str"))
+numerical_features = ["FAMILY_SIZE",
+					  "DISTANCE",
+					  "TRIP_LEN_DAYS"]
+
+train = pd.get_dummies(train, columns = categorical_features)
+test = pd.get_dummies(test, columns = categorical_features)
 
 train["EXTRA_BAGGAGE"] = LabelEncoder().fit_transform(train["EXTRA_BAGGAGE"])
 
-features = categorical_features + numerical_features
+dummy_categorical_features = ["IS_ALONE_ALONE",
+							  "HAUL_TYPE_CONTINENTAL",
+							  "HAUL_TYPE_DOMESTIC",
+							  "HAUL_TYPE_INTERCONTINENTAL",
+							  "DEVICE_SMARTPHONE",
+							  "DEVICE_TABLET",
+							  "DEVICE_COMPUTER",
+							  "TRIP_TYPE_MULTI_DESTINATION",
+							  "TRIP_TYPE_ONE_WAY",
+							  "TRIP_TYPE_ROUND_TRIP",
+							  "COMPANY_EDREAMS",
+							  "COMPANY_GO_VOYAGE",
+							  "COMPANY_OPODO"]
+
+features = dummy_categorical_features + numerical_features
 
 # Separation of features and outcome
 X_train = train[list(features)].values
@@ -50,19 +67,20 @@ X_train, X_validation, Y_train, Y_validation = train_test_split(X_train, Y_train
 																random_state=747)
 
 # Rule-ot-thumb XGBoost parameters
-n_estimators=300
-max_depth=3
+n_estimators=2000
+max_depth=8
 learning_rate=0.1
 
 clf = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth,
 					learning_rate=learning_rate)
+# clf = XGBClassifier()
 clf.fit(X_train, Y_train)
 
 Y_test = clf.predict(X_test)
 Y_test_proba = clf.predict_proba(X_test)
 
 print("--- Model parameters ---")
-print("XGBClassifier(n_estimators={}, max_depth={},learning_rate={})".format(n_estimators, max_depth, learning_rate))
+print(clf)
 
 print("--- Validation set ---")
 print("AUC;{}".format(roc_auc_score(Y_validation, clf.predict(X_validation))))

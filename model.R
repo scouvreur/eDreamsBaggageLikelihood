@@ -24,7 +24,7 @@ test$DEVICE[is.na(test$DEVICE)] <- "OTHER"
 
 # Check for missing data
 length(train[!complete.cases(train),])
-length(test[!complete.cases(test),])s
+length(test[!complete.cases(test),])
 
 # Reformatting data structure types
 str(train)
@@ -52,7 +52,7 @@ extractWebsite <- function(name) {
   } else if (length(grep("OP", name)) > 0) {
     return("OPODO")
   } else if (length(grep("GO", name)) > 0) {
-    return("GO VOYAGE")
+    return("GO_VOYAGE")
   } else {
     return("OTHER")
   }
@@ -111,15 +111,15 @@ test$DISTANCE_CAT <- factor(cut(test$DISTANCE, c(-1,4000,100000), labels = FALSE
 # Adding labels to dataset
 train$EXTRA_BAGGAGE <- factor(train$EXTRA_BAGGAGE,
                               levels = c("False","True"),
-                              labels = c("No Extra Baggage", "Extra Baggage"))
+                              labels = c("NO_EXTRA_BAGGAGE", "EXTRA_BAGGAGE"))
 
 train$IS_ALONE <- factor(train$IS_ALONE,
                          levels = c(0,1),
-                         labels = c("Not alone", "Alone"))
+                         labels = c("NOT_ALONE", "ALONE"))
 
 test$IS_ALONE <- factor(test$IS_ALONE,
                         levels = c(0,1),
-                        labels = c("Not alone", "Alone"))
+                        labels = c("NOT_ALONE", "ALONE"))
 
 # Variables not of interest removed
 # Assuming there is no local variability between countries (UK, Italy, Spain etc.)
