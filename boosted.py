@@ -109,6 +109,8 @@ array = np.column_stack((Y_validation_proba[:,1], Y_validation))
 
 x = array[np.where(array[:,1] == 1.)]
 y = array[np.where(array[:,1] == 0.)]
-sns.kdeplot(x[:,0], shade=True)
-sns.kdeplot(y[:,0], shade=True)
+sns.kdeplot(x[:,0], shade=True, label='positives')
+sns.kdeplot(y[:,0], shade=True, label='negatives')
+xlim((0, 1))
+plt.legend(loc='upper right')
 plt.show()

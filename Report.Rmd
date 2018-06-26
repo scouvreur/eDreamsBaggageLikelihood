@@ -2,12 +2,16 @@
 title: "eDreams ODIGEO Baggage Likelihood Model"
 author: "Stéphane Couvreur"
 date: "16/9/2018"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pROC)
+library(ggplot2)
 load("data.RData")
 ```
 
@@ -207,18 +211,22 @@ model <- glm(EXTRA_BAGGAGE ~ factor(HAUL_TYPE) + factor(TRIP_TYPE) +
              data = train,
              family = binomial(link = "logit"))
 summary(model)
-exp(cbind(odds=coef(model), confint(model)))
 
-prediction <- predict(model, validation, type="response")
+validation$PREDICTION <- predict(model, validation, type="response")
 
-rocobj <- roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE)
+ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5)
 
-plot(roc(factor(validation$EXTRA_BAGGAGE), prediction, ci=TRUE, direction="<"),
+rocobj <- roc(factor(validation$EXTRA_BAGGAGE), validation$PREDICTION, ci=TRUE)
+
+plot(roc(factor(validation$EXTRA_BAGGAGE),
+     validation$PREDICTION,
+     ci=TRUE, direction="<"),
      col="black",
      print.auc=TRUE,
      xlab="False Positive Rate",
      ylab="True Positive Rate",
      main="ROC Curve")
+
 ```
 
 We can confirm from this that SMS is not significant in our model as shown by the p-value (), we can therefore remove it. All other features are highly significant (*** corresponing to p<0.001), so we choose to keep them in our model.
