@@ -20,7 +20,6 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from xgboost.sklearn import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from xgboost import plot_importance
 from sklearn.metrics import roc_auc_score
 
@@ -73,19 +72,21 @@ X_train, X_validation, Y_train, Y_validation = train_test_split(X_train,Y_train,
 																random_state=7)
 
 # Rule-of-thumb XGBoost parameters
-n_estimators=2000
-max_depth=12
+params = {'tree_method': 'gpu_hist',
+          'updater' : 'grow_gpu',
+          'n_jobs': -1
+          }
+n_estimators=400
+max_depth=5
+min_child_weight=5
 learning_rate=0.1
 
-clf = XgGBClassifier(n_estimators=n_estimators,
-					  max_depth=max_depth,
-					  learning_rate=learning_rate)
-# clf = XGBClassifier()
-# clf = RandomForestClassifier()
-clf = GradientBoostingClassifier(n_estimators=n_estimators,
-								 max_depth=max_depth,
-								 learning_rate=learning_rate)
-
+clf = XGBClassifier(n_estimators=n_estimators,
+					max_depth=max_depth,
+					min_child_weight=min_child_weight,
+					learning_rate=learning_rate,
+					**params)
+# clf = XGBClassifier(**params)
 clf.fit(X_train, Y_train)
 
 Y_test = clf.predict(X_test)
@@ -122,6 +123,8 @@ x = array[np.where(array[:,1] == 1.)]
 y = array[np.where(array[:,1] == 0.)]
 sns.distplot(x[:,0], label='positives')
 sns.distplot(y[:,0], label='negatives')
+plt.xlabel('Predicted Probability')
+plt.ylabel('Density')
 plt.xlim(0, 1)
 plt.legend(loc='upper right')
 plt.show()

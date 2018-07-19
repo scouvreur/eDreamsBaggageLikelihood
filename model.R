@@ -132,6 +132,8 @@ test <- subset(test, select = -c(TIMESTAMP, DEPARTURE:ARRIVAL,
                                  TRAIN, PRODUCT, GDS,
                                  NO_GDS, WEBSITE, SMS))
 
+table(train$EXTRA_BAGGAGE)
+
 # Downsampling to balance both classes
 down_train <- downSample(x = train[, -ncol(train)],
                          y = train$EXTRA_BAGGAGE)
@@ -157,8 +159,7 @@ exp(cbind(odds=coef(model), confint(model)))
 
 validation$PREDICTION <- predict(model, validation, type="response")
 
-ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE))
-       + geom_density(alpha = 0.5)
+ggplot(validation, aes(x = PREDICTION, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5)
 
 rocobj <- roc(factor(validation$EXTRA_BAGGAGE), validation$PREDICTION, ci=TRUE)
 
@@ -167,8 +168,8 @@ plot(roc(factor(validation$EXTRA_BAGGAGE),
      ci=TRUE, direction="<"),
      col="black",
      print.auc=TRUE,
-     xlab="False Positive Rate",
-     ylab="True Positive Rate",
+     xlab="Specificity",
+     ylab="Sensitivity",
      main="ROC Curve")
 
 test$EXTRA_BAGGAGE <- predict(model, test, type="response")

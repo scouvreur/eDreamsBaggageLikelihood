@@ -1,17 +1,18 @@
 ---
-title: "eDreams ODIGEO Baggage Likelihood Model"
+title: "eDreams ODIGEO Baggage Likelihood Predictive Model"
 author: "Stéphane Couvreur"
-date: "16/9/2018"
-output:
-  pdf_document: default
-  html_document:
-    df_print: paged
+date: June 15th, 2018
+output: github_document
+  # html_document: 
+  #   df_print: paged
+  # pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pROC)
 library(ggplot2)
+library(caret)
 load("data.RData")
 ```
 
@@ -142,6 +143,14 @@ It would be interesting to see if the adults travelling alone tend to not book l
 round(prop.table(table(train$IS_ALONE, train$EXTRA_BAGGAGE), 1)*100, digits = 1)
 ```
 
+## Trip length
+
+Using an engineered feature
+
+```{r}
+ggplot(train, aes(x = TRIP_LEN_DAYS, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5) + xlim(0, 30)
+```
+
 ## Flight type and distance
 
 I would imagine that flight distance would account for a lot of the variability in luggage selection, as people who travel further I would assume need to carry more than if they are doing a short weekend trip within Europe for instance.
@@ -180,6 +189,8 @@ hist(train$DISTANCE,
 
 boxplot(DISTANCE ~ EXTRA_BAGGAGE, data=train, main="Flight Distance Data",
   	xlab="Baggage", ylab="Distance [km]")
+
+ggplot(train, aes(x = DISTANCE, fill = EXTRA_BAGGAGE)) + geom_density(alpha = 0.5)
 ```
 
 As there does not seem to be a clear distinction using flight distance as a continuous variable, we use distance cut into categories to improve our model. We group together values between 0-4000 and 4000+ km to make things even simple.
@@ -196,6 +207,19 @@ round(prop.table(table(train$DISTANCE_CAT, train$EXTRA_BAGGAGE), 1)*100, digits 
 ```
 
 # Building the model
+## Random subsampling to balance classes
+
+```{r}
+table(train$EXTRA_BAGGAGE)
+
+# Downsampling to balance both classes
+down_train <- downSample(x = train[, -ncol(train)],
+                         y = train$EXTRA_BAGGAGE)
+down_train <- subset(down_train, select = -c(Class))
+# There is now no class imbalance in the subsample
+table(down_train$EXTRA_BAGGAGE)
+```
+
 ## Logisitic Regression
 
 Using all the features we deemed significant and our engineered classes, we obtain the following model:
@@ -223,8 +247,8 @@ plot(roc(factor(validation$EXTRA_BAGGAGE),
      ci=TRUE, direction="<"),
      col="black",
      print.auc=TRUE,
-     xlab="False Positive Rate",
-     ylab="True Positive Rate",
+     xlab="Specificity",
+     ylab="Sensitivity",
      main="ROC Curve")
 
 ```
